@@ -6,20 +6,25 @@ on:
 jobs:
   build-wheels:
     runs-on: ubuntu-latest
+    # Arch Linuxではなく、PyTorch公式のCUDA 12.1開発用コンテナを使用する
+    # これによりC++コンパイラや標準ライブラリのバージョン問題を回避できる
     container:
-      image: archlinux:latest
+      image: pytorch/pytorch:2.2.0-cuda12.1-cudnn8-devel
 
     steps:
       - name: Install System Dependencies
         run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel cuda python python-pip git nodejs
+          apt-get update
+          # nodejsはGitHub Actionsの動作に必要
+          apt-get install -y git build-essential nodejs
 
-      - name: Setup Virtual Environment & Install Build Tools
+      - name: Setup Python Environment
         run: |
+          # コンテナ内のPython(3.10等)で仮想環境を作成
           python -m venv /build_venv
           source /build_venv/bin/activate
-          pip install torch ninja packaging psutil wheel
+          pip install --upgrade pip
+          pip install ninja packaging psutil wheel
 
       - name: Build flash-attn Wheel
         run: |
@@ -27,10 +32,7 @@ jobs:
           git clone https://github.com/Dao-AILab/flash-attention.git
           cd flash-attention
           
-          # CUDAのパスを明示的に指定してnvccを認識させる
-          export CUDA_HOME=/opt/cuda
-          export PATH=/opt/cuda/bin:$PATH
-          
+          # develコンテナはCUDA_HOMEが既に設定済み
           export TORCH_CUDA_ARCH_LIST="12.0"
           export MAX_JOBS=2
           pip wheel . --no-build-isolation --wheel-dir=/output
@@ -41,9 +43,6 @@ jobs:
           git clone https://github.com/turboderp-org/exllamav3.git
           cd exllamav3
           
-          export CUDA_HOME=/opt/cuda
-          export PATH=/opt/cuda/bin:$PATH
-          
           export TORCH_CUDA_ARCH_LIST="12.0"
           export MAX_JOBS=2
           pip wheel . --no-build-isolation --wheel-dir=/output
@@ -51,5 +50,5 @@ jobs:
       - name: Upload Wheels as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: archlinux-cp314-sm120-wheels
+          name: ubuntu-cuda121-sm120-wheels
           path: /output/*.whl
