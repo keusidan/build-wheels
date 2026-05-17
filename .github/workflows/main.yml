@@ -9,7 +9,6 @@ jobs:
     container:
       image: pytorch/pytorch:2.2.0-cuda12.1-cudnn8-devel
 
-    # ここを追加：すべてのrunステップをbashで実行させる
     defaults:
       run:
         shell: bash
@@ -20,16 +19,14 @@ jobs:
           apt-get update
           apt-get install -y git build-essential nodejs
 
-      - name: Setup Python Environment
+      - name: Setup Build Tools
         run: |
-          python -m venv /build_venv
-          source /build_venv/bin/activate
+          # コンテナ標準のPython(PyTorch導入済み)をそのまま使います
           pip install --upgrade pip
           pip install ninja packaging psutil wheel
 
       - name: Build flash-attn Wheel
         run: |
-          source /build_venv/bin/activate
           git clone https://github.com/Dao-AILab/flash-attention.git
           cd flash-attention
           
@@ -39,7 +36,6 @@ jobs:
 
       - name: Build exllamav3 Wheel
         run: |
-          source /build_venv/bin/activate
           git clone https://github.com/turboderp-org/exllamav3.git
           cd exllamav3
           
