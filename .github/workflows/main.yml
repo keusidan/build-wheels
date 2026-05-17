@@ -6,21 +6,22 @@ on:
 jobs:
   build-wheels:
     runs-on: ubuntu-latest
-    # Arch Linuxではなく、PyTorch公式のCUDA 12.1開発用コンテナを使用する
-    # これによりC++コンパイラや標準ライブラリのバージョン問題を回避できる
     container:
       image: pytorch/pytorch:2.2.0-cuda12.1-cudnn8-devel
+
+    # ここを追加：すべてのrunステップをbashで実行させる
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Install System Dependencies
         run: |
           apt-get update
-          # nodejsはGitHub Actionsの動作に必要
           apt-get install -y git build-essential nodejs
 
       - name: Setup Python Environment
         run: |
-          # コンテナ内のPython(3.10等)で仮想環境を作成
           python -m venv /build_venv
           source /build_venv/bin/activate
           pip install --upgrade pip
@@ -32,7 +33,6 @@ jobs:
           git clone https://github.com/Dao-AILab/flash-attention.git
           cd flash-attention
           
-          # develコンテナはCUDA_HOMEが既に設定済み
           export TORCH_CUDA_ARCH_LIST="12.0"
           export MAX_JOBS=2
           pip wheel . --no-build-isolation --wheel-dir=/output
