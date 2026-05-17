@@ -6,9 +6,10 @@ on:
 jobs:
   build-wheels:
     runs-on: ubuntu-latest
-    # 最新GPUをサポートするCUDA 13.2と、安定したGCCを持つUbuntu 24.04の組み合わせ
     container:
       image: nvidia/cuda:13.2.0-devel-ubuntu24.04
+      # 【追加】コンテナが使用できる物理メモリを6.5GBに強制制限し、サーバー全体のクラッシュを防ぐ
+      options: --memory=6.5g
 
     defaults:
       run:
@@ -18,7 +19,6 @@ jobs:
       - name: Install System Dependencies
         run: |
           apt-get update
-          # インストール時のタイムゾーン入力待ちでフリーズするのを防ぐ環境変数を追加
           DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata git build-essential python3 python3-pip python3-venv nodejs
 
       - name: Setup Python Environment
@@ -26,7 +26,6 @@ jobs:
           python3 -m venv /build_venv
           source /build_venv/bin/activate
           pip install --upgrade pip
-          # PyTorchの最新安定版とビルドツールを導入
           pip install torch ninja packaging psutil wheel
 
       - name: Build flash-attn Wheel
@@ -37,7 +36,7 @@ jobs:
           
           mkdir -p /output
           export TORCH_CUDA_ARCH_LIST="12.0"
-          export MAX_JOBS=2
+          export MAX_JOBS=1
           pip wheel . --no-build-isolation --wheel-dir=/output
 
       - name: Build exllamav3 Wheel
@@ -48,7 +47,7 @@ jobs:
           
           mkdir -p /output
           export TORCH_CUDA_ARCH_LIST="12.0"
-          export MAX_JOBS=2
+          export MAX_JOBS=1
           pip wheel . --no-build-isolation --wheel-dir=/output
 
       - name: Upload Wheels as Artifact
